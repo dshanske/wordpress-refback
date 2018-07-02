@@ -1,0 +1,26 @@
+{
+  "name": "wordpress-refback",
+  "description": "Refback support for WordPress posts",
+  "main": "refback.php",
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-checktextdomain": "^1.0.1",
+    "grunt-replace": "^1.0.1",
+    "grunt-wp-i18n": "^0.5.4",
+    "grunt-wp-readme-to-markdown": "^0.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dshanske/wordpress-refback.git"
+  },
+  "keywords": [
+    "refback",
+    "linkback"
+  ],
+  "author": "David Shanske",
+  "license": "GPLv2",
+  "bugs": {
+    "url": "https://github.com/dshanske/wordpress-refback/issues"
+  },
+  "homepage": "https://github.com/dshanske/wordpress-refback"
+}

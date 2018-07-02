@@ -1,0 +1,6 @@
+.data
+node_modules
+vendor
+npm-debug.log
+.DS_Store
+package-lock.json
