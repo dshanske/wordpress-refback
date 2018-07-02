@@ -55,6 +55,10 @@ class Refback_Receiver {
 			return;
 		}
 
+		if ( wp_parse_url( home_url(), PHP_URL_HOST ) === wp_parse_url( $target, PHP_URL_HOST ) ) {
+			return;
+		}
+
 		// This needs to be stored here as it might not be available
 		// later.
 		$comment_author_ip = preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] );
