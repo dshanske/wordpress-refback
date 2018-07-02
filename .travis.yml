@@ -9,15 +9,11 @@ cache:
   directories:
     - vendor
     - $HOME/.composer/cache
-after_success: curl -L https://raw.githubusercontent.com/miya0001/travis2wpplugin/master/deploy.sh | bash
 env:
   matrix:
   - WP_VERSION=latest WP_MULTISITE=0
   global:
   - WP_TRAVISCI=travis:phpunit
-  - SVN_REPO: https://plugins.svn.wordpress.org/webmention/
-  - GH_REF: https://github.com/pfefferle/wordpress-webmention.git
-  - secure: "WaeBLo0MDuK4X7NQvk5Ie5BVnexHtyDfHAV8v7dB8B67d8GCWy9K5I54jTECNRUC+CecMakLq5DOfn+ThtWdkJmoJKnGNFp8ZrWkMsfVJRi3CDED2HkccOrxkmXBj8Z6A8jZjcfVNrEmq/6697xVNRGeaS08l9rokh7pyb8INWY="
 matrix:
   include:
   - php: 7.2
@@ -25,12 +21,10 @@ matrix:
   - php: 7.0
   - php: 5.6
   - php: 5.6
-    env: WP_PULUGIN_DEPLOY=1
+    env: WP_TRAVISCI=travis:phpcs
   - php: 5.5
   - php: 5.4
   - php: 5.3
-    dist: precise
-  - php: 5.2
     dist: precise
 before_script:
 - |
@@ -103,5 +97,5 @@ script:
     fi
   - |
     if [[ "$WP_TRAVISCI" == "travis:phpcs" ]] ; then
-      ./vendor/bin/phpcs -p -s -v -n --standard=./phpcs.ruleset.xml --extensions=php
+      ./vendor/bin/phpcs -p -s -v -n --standard=./phpcs.xml --extensions=php
     fi
