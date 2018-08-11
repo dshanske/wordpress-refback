@@ -5,7 +5,7 @@
  * Description: Refback Support for WordPress
  * Author: David Shanske
  * Author URI: https://david.shanske.com
- * Version: 0.0.1
+ * Version: 1.0.0
  * License:
  * License URI:
  * Text Domain: refback

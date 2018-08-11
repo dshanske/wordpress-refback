@@ -1,9 +1,9 @@
 === Refback ===
 Contributors: dshanske
-Tags: refback, linkback, indieweb, comment, response
+Tags: refback, linkback, comment, response
 Requires at least: 4.7
-Tested up to: 4.9.6
-Stable tag: 0.0.1
+Tested up to: 4.9.8
+Stable tag: 1.0.0
 License: GPLv2
 
 Enable Refbacks on your WordPress site
@@ -33,6 +33,6 @@ When declaring your custom post type, add post type support for refbacks by eith
 
 Project and support maintained on github at [dshanske/wordpress-refback](https://github.com/dshanske/wordpress-refback).
 
-= 0.0.1 = 
+= 1.0.0 = 
 
-* Initial commit based on the Webmention plugin
+* Initial release based on the Webmention plugin

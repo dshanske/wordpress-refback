@@ -17,7 +17,6 @@ class Refback_Receiver {
 
 		// Refback helper
 		add_filter( 'refback_comment_data', array( 'Refback_Receiver', 'refback_verify' ), 11, 1 );
-		add_filter( 'refback_comment_data', array( 'Refback_Receiver', 'check_dupes' ), 12, 1 );
 
 		// Refback data handler
 		add_filter( 'refback_comment_data', array( 'Refback_Receiver', 'default_title_filter' ), 21, 1 );
@@ -55,7 +54,7 @@ class Refback_Receiver {
 			return;
 		}
 
-		if ( wp_parse_url( home_url(), PHP_URL_HOST ) === wp_parse_url( $target, PHP_URL_HOST ) ) {
+		if ( wp_parse_url( home_url(), PHP_URL_HOST ) === wp_parse_url( $source, PHP_URL_HOST ) ) {
 			return;
 		}
 
@@ -112,6 +111,16 @@ class Refback_Receiver {
 
 		// add empty fields
 		$commentdata['comment_author_email'] = '';
+
+		$args     = array(
+			'post_id'    => $comment_post_id,
+			'author_url' => $source,
+			'count'      => true,
+		);
+		$comments = get_comments( $args );
+		if ( 0 !== $comments ) {
+			return;
+		}
 
 		/**
 		 * Filter Comment Data for Refbacks.
@@ -265,68 +274,6 @@ class Refback_Receiver {
 		}
 
 		return $dupe_id;
-	}
-
-	/**
-	 * Check if a comment already exists
-	 *
-	 * @param  array $commentdata the comment, created for the refback data
-	 *
-	 * @return array|null the dupe or null
-	 */
-	public static function check_dupes( $commentdata ) {
-		if ( ! $commentdata || is_wp_error( $commentdata ) ) {
-			return $commentdata;
-		}
-		$args = array(
-			'post_id'    => $commentdata['comment_post_ID'],
-			'meta_key'   => 'refback_source_url',
-			'meta_value' => $commentdata['comment_author_url'],
-		);
-
-		$comments = get_comments( $args );
-		// check result
-		if ( ! empty( $comments ) ) {
-			$comment                         = $comments[0];
-			$commentdata['comment_ID']       = $comment->comment_ID;
-			$commentdata['comment_approved'] = $comment->comment_approved;
-
-			return $commentdata;
-		}
-
-		// Check in comment_author_url if the newer location is empty
-		$args     = array(
-			'post_id'    => $commentdata['comment_post_ID'],
-			'author_url' => $commentdata['comment_author_url'],
-		);
-		$comments = get_comments( $args );
-		// check result
-		if ( ! empty( $comments ) ) {
-			$comment                         = $comments[0];
-			$commentdata['comment_ID']       = $comment->comment_ID;
-			$commentdata['comment_approved'] = $comment->comment_approved;
-			return $commentdata;
-		}
-
-		// check comments sent via salmon are also dupes
-		// or anyone else who can't use comment_author_url as the original link,
-		// but can use a _crossposting_link meta value.
-		// @link https://github.com/pfefferle/wordpress-salmon/blob/master/plugin.php#L192
-		$args     = array(
-			'post_id'    => $commentdata['comment_post_ID'],
-			'meta_key'   => '_crossposting_link',
-			'meta_value' => $commentdata['comment_author_url'],
-		);
-		$comments = get_comments( $args );
-
-		// check result
-		if ( ! empty( $comments ) ) {
-			$comment                         = $comments[0];
-			$commentdata['comment_ID']       = $comment->comment_ID;
-			$commentdata['comment_approved'] = $comment->comment_approved;
-		}
-
-		return $commentdata;
 	}
 
 	/**
