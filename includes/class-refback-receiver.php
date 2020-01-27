@@ -224,13 +224,16 @@ class Refback_Receiver {
 
 		// check if source really links to target
 		if ( ! strpos(
-			htmlspecialchars_decode( $remote_source_original ), str_replace(
+			htmlspecialchars_decode( $remote_source_original ),
+			str_replace(
 				array(
 					'http://www.',
 					'http://',
 					'https://www.',
 					'https://',
-				), '', untrailingslashit( preg_replace( '/#.*/', '', $data['target'] ) )
+				),
+				'',
+				untrailingslashit( preg_replace( '/#.*/', '', $data['target'] ) )
 			)
 		) ) {
 			return;
