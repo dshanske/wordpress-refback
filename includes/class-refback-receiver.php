@@ -89,11 +89,6 @@ class Refback_Receiver {
 			return;
 		}
 
-		// check if pings are allowed
-		if ( ! pings_open( $comment_post_id ) ) {
-			return;
-		}
-
 		$post = get_post( $comment_post_id );
 		if ( ! $post ) {
 			return;
