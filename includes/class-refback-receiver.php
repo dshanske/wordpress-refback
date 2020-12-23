@@ -39,6 +39,57 @@ class Refback_Receiver {
 		register_meta( 'comment', 'refback_source_url', $args );
 	}
 
+	/**
+	 * Inverse of parse_url
+	 *
+	 * Slightly modified from p3k-utils (https://github.com/aaronpk/p3k-utils)
+	 * Copyright 2017 Aaron Parecki, used with permission under MIT License
+	 *
+	 * @link http://php.net/parse_url
+	 * @param  string $parsed_url the parsed URL (wp_parse_url)
+	 * @return string             the final URL
+	 */
+	public static function build_url( $parsed_url ) {
+		$scheme   = ! empty( $parsed_url['scheme'] ) ? $parsed_url['scheme'] . '://' : '';
+		$host     = ! empty( $parsed_url['host'] ) ? $parsed_url['host'] : '';
+		$port     = ! empty( $parsed_url['port'] ) ? ':' . $parsed_url['port'] : '';
+		$user     = ! empty( $parsed_url['user'] ) ? $parsed_url['user'] : '';
+		$pass     = ! empty( $parsed_url['pass'] ) ? ':' . $parsed_url['pass'] : '';
+		$pass     = ( $user || $pass ) ? "$pass@" : '';
+		$path     = ! empty( $parsed_url['path'] ) ? $parsed_url['path'] : '';
+		$query    = ! empty( $parsed_url['query'] ) ? '?' . $parsed_url['query'] : '';
+		$fragment = ! empty( $parsed_url['fragment'] ) ? '#' . $parsed_url['fragment'] : '';
+		return "$scheme$user$pass$host$port$path$query$fragment";
+	}
+
+
+	public static function normalize_url( $url, $force_ssl = false ) {
+		$parts = wp_parse_url( $url );
+		if ( array_key_exists( 'path', $parts ) && '' === $parts['path'] ) {
+			return false;
+		}
+
+		// wp_parse_url returns just "path" for naked domains
+		if ( count( $parts ) === 1 && array_key_exists( 'path', $parts ) ) {
+			$parts['host'] = $parts['path'];
+			unset( $parts['path'] );
+		}
+		if ( ! array_key_exists( 'scheme', $parts ) ) {
+			$parts['scheme'] = $force_ssl ? 'https' : 'http';
+		} elseif ( $force_ssl ) {
+			$parts['scheme'] = 'https';
+		}
+		if ( ! array_key_exists( 'path', $parts ) ) {
+			$parts['path'] = '/';
+		}
+
+		// Invalid scheme
+		if ( ! in_array( $parts['scheme'], array( 'http', 'https' ), true ) ) {
+					return false;
+		}
+		return self::build_url( $parts );
+	}
+
 
 	public static function post() {
 		if ( is_admin() ) {
@@ -49,27 +100,37 @@ class Refback_Receiver {
 		if ( ! $source ) {
 			return;
 		}
-		$target = home_url( $_SERVER['REQUEST_URI'] );
+
+		$target = get_self_link();
+
 		if ( ! isset( $target ) ) {
 			return;
 		}
 
-		if ( wp_parse_url( home_url(), PHP_URL_HOST ) === wp_parse_url( $source, PHP_URL_HOST ) ) {
+		$source = self::normalize_url( $source );
+		$target = self::normalize_url( $target );
+
+		// Do not accept self refbacks.
+		if ( wp_parse_url( $target, PHP_URL_HOST ) === wp_parse_url( $source, PHP_URL_HOST ) ) {
 			return;
 		}
 
-		// This needs to be stored here as it might not be available
-		// later.
+		// This needs to be stored here as it might not be available later.
 		$comment_author_ip = preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] );
 		$comment_agent     = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '';
-		$comment_date      = current_time( 'mysql' );
-		$comment_date_gmt  = current_time( 'mysql', 1 );
+
+		$comment_date     = current_time( 'mysql' );
+		$comment_date_gmt = get_gmt_from_date( $comment_date );
 
 		// change this if your theme can't handle the Refbacks comment type
 		$comment_type = REFBACK_COMMENT_TYPE;
 
 		// change this if you want to auto approve your refbacks
 		$comment_approved = 0;
+
+		$comment_meta = array(
+			'protocol' => 'refback',
+		);
 
 		$commentdata = compact( 'comment_type', 'comment_approved', 'comment_agent', 'comment_date', 'comment_date_gmt', 'comment_meta', 'source', 'target' );
 
@@ -78,14 +139,22 @@ class Refback_Receiver {
 	}
 
 	public static function do_refback( $commentdata ) {
+		if ( empty( $commentdata ) ) {
+			return;
+		}
+
+		if ( ! array_key_exists( 'target', $commentdata ) && ! array_key_exists( 'source', $commentdata ) ) {
+			return;
+		}
+
 		$comment_post_id = url_to_postid( $commentdata['target'] );
 
-		// check if post id exists
+		// check if post id exists.
 		if ( ! $comment_post_id ) {
 			return;
 		}
 
-		if ( url_to_postid( $source ) === $comment_post_id ) {
+		if ( url_to_postid( $commentdata['source'] ) === $comment_post_id ) {
 			return;
 		}
 
@@ -99,8 +168,9 @@ class Refback_Receiver {
 		// Set Comment Author URL to Source
 		$commentdata['comment_author_url'] = esc_url_raw( $commentdata['source'] );
 		// Save Source to Meta to Allow Author URL to be Changed and Parsed
-		$commentdata['comment_meta']                       = array();
-		$commentdata['comment_meta']['refback_source_url'] = $commentdata['comment_author_url'];
+		$commentdata['comment_meta'] = array(
+			'refback_source_url' => $commentdata['comment_author_url'],
+		);
 
 		$commentdata['comment_parent'] = '';
 
@@ -184,42 +254,17 @@ class Refback_Receiver {
 			return;
 		}
 
-		$wp_version = get_bloginfo( 'version' );
-
-		$user_agent = apply_filters( 'http_headers_useragent', 'WordPress/' . $wp_version . '; ' . get_bloginfo( 'url' ) );
-		$args       = array(
-			'timeout'             => 100,
-			'limit_response_size' => 153600,
-			'redirection'         => 20,
-			'user-agent'          => "$user_agent; verifying refback from " . $data['comment_author_IP'],
-		);
-
-		$response = wp_safe_remote_get( $data['source'], $args );
+		$request = new Refback_Request();
+		$return  = $request->fetch( $data['source'] );
 
 		// check if source is accessible
-		if ( is_wp_error( $response ) ) {
-			return;
+		if ( is_wp_error( $return ) ) {
+			return $return;
 		}
 
-		// A valid response code from the other server would not be considered an error.
-		$response_code = wp_remote_retrieve_response_code( $response );
-		// not an (x)html, sgml, or xml page, no use going further
-		if ( preg_match( '#(image|audio|video|model)/#is', wp_remote_retrieve_header( $response, 'content-type' ) ) ) {
-			return;
-		}
-
-		switch ( $response_code ) {
-			case 200:
-				$response = wp_safe_remote_get( $data['source'], $args );
-				break;
-			default:
-				return;
-		}
-		$remote_source_original = wp_remote_retrieve_body( $response );
-
-		// check if source really links to target
+			// check if source really links to target
 		if ( ! strpos(
-			htmlspecialchars_decode( $remote_source_original ),
+			htmlspecialchars_decode( $request->get_body() ),
 			str_replace(
 				array(
 					'http://www.',
@@ -231,16 +276,25 @@ class Refback_Receiver {
 				untrailingslashit( preg_replace( '/#.*/', '', $data['target'] ) )
 			)
 		) ) {
-			return;
+			return new WP_Error(
+					'target_not_found',
+					esc_html__( 'Cannot find target link', 'webmention' ),
+					array(
+						'status' => 400,
+						'data'   => $data,
+					)
+			);
 		}
 
 		if ( ! function_exists( 'wp_kses_post' ) ) {
 			include_once ABSPATH . 'wp-includes/kses.php';
 		}
 
-		$remote_source = wp_kses_post( $remote_source_original );
-		$content_type  = wp_remote_retrieve_header( $response, 'Content-Type' );
-		$commentdata   = compact( 'remote_source', 'remote_source_original', 'content_type' );
+		$commentdata = array(
+					'content_type'           => $request->get_content_type(),
+					'remote_source_original' => $request->get_body(),
+					'remote_source'          => refback_sanitize_html( $request->get_body() ),
+		);
 
 		return array_merge( $commentdata, $data );
 	}
@@ -265,8 +319,8 @@ class Refback_Receiver {
 		}
 
 		if (
-			( isset( $commentdata['comment_type'] ) && 'refback' === $commentdata['comment_type'] ) ||
-			( isset( $commentdata['comment_meta'] ) && ! empty( $commentdata['comment_meta']['semantic_linkbacks_type'] ) )
+		( isset( $commentdata['comment_type'] ) && 'refback' === $commentdata['comment_type'] ) ||
+		( isset( $commentdata['comment_meta'] ) && ! empty( $commentdata['comment_meta']['semantic_linkbacks_type'] ) )
 		) {
 			return 0;
 		}
