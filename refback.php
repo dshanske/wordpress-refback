@@ -5,14 +5,12 @@
  * Description: Refback Support for WordPress
  * Author: David Shanske
  * Author URI: https://david.shanske.com
- * Version: 1.0.0
+ * Version: 2.0.0
  * License:
  * License URI:
  * Text Domain: refback
  * Domain Path: /languages
  */
-
-defined( 'REFBACK_COMMENT_TYPE' ) || define( 'REFBACK_COMMENT_TYPE', 'refback' );
 
 add_action( 'plugins_loaded', array( 'Refback_Plugin', 'init' ) );
 
@@ -36,6 +34,13 @@ class Refback_Plugin {
 			add_post_type_support( 'page', 'refback' );
 		}
 
+		//  Add Global Functions
+		require_once dirname( __FILE__ ) . '/includes/functions.php';
+
+
+		// Add Refback Receiver
+		require_once dirname( __FILE__ ) . '/includes/class-refback-request.php';
+
 		// initialize Refback Receiver
 		require_once dirname( __FILE__ ) . '/includes/class-refback-receiver.php';
 		add_action( 'init', array( 'Refback_Receiver', 'init' ) );
@@ -43,9 +48,6 @@ class Refback_Plugin {
 		// Default Comment Status
 		add_filter( 'get_default_comment_status', array( 'Refback_Plugin', 'get_default_comment_status' ), 11, 3 );
 		add_filter( 'pings_open', array( 'Refback_Plugin', 'pings_open' ), 10, 2 );
-
-		// Load language files
-		self::plugin_textdomain();
 	}
 
 	public static function get_default_comment_status( $status, $post_type, $comment_type ) {
@@ -75,11 +77,11 @@ class Refback_Plugin {
 
 		return $open;
 	}
+}
 
-	/**
-	 * Load language files
-	 */
-	public static function plugin_textdomain() {
-		load_plugin_textdomain( 'refback', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+if ( ! function_exists( 'get_self_link' ) ) {
+	function get_self_link() {
+		$host = parse_url( home_url() );
+	        return set_url_scheme( 'http://' . $host['host'] . wp_unslash( $_SERVER['REQUEST_URI'] ) );
 	}
 }
