@@ -143,6 +143,7 @@ class Refback_Receiver {
 		$comment_meta = array(
 			'protocol'   => 'refback',
 			'source_url' => esc_url_raw( $source ),
+			'target_url' => esc_url_raw( $target ),
 		);
 
 		$commentdata = compact( 'comment_type', 'comment_approved', 'comment_agent', 'comment_date', 'comment_date_gmt', 'comment_meta', 'source', 'target' );
