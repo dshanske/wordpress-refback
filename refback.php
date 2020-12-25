@@ -37,7 +37,6 @@ class Refback_Plugin {
 		//  Add Global Functions
 		require_once dirname( __FILE__ ) . '/includes/functions.php';
 
-
 		// Add Refback Receiver
 		require_once dirname( __FILE__ ) . '/includes/class-refback-request.php';
 
@@ -81,7 +80,7 @@ class Refback_Plugin {
 
 if ( ! function_exists( 'get_self_link' ) ) {
 	function get_self_link() {
-		$host = parse_url( home_url() );
-	        return set_url_scheme( 'http://' . $host['host'] . wp_unslash( $_SERVER['REQUEST_URI'] ) );
+		$host = wp_parse_url( home_url() );
+		return set_url_scheme( 'http://' . $host['host'] . wp_unslash( $_SERVER['REQUEST_URI'] ) );
 	}
 }

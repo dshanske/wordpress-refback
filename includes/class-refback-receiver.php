@@ -9,34 +9,30 @@ class Refback_Receiver {
 	 * Initialize the plugin, registering WordPress hooks
 	 */
 	public static function init() {
-		add_action( 'pre_get_posts', array( 'Refback_Receiver', 'post' ), 10 );
+		add_action( 'pre_get_posts', array( static::class, 'post' ), 10 );
 
-		add_action( 'do_refbacks', array( 'Refback_Receiver', 'do_refback' ), 10 );
+		add_action( 'do_refbacks', array( static::class, 'do_refback' ), 10 );
 
-		add_filter( 'duplicate_comment_id', array( 'Refback_Receiver', 'disable_wp_check_dupes' ), 20, 2 );
+		add_filter( 'duplicate_comment_id', array( static::class, 'disable_wp_check_dupes' ), 20, 2 );
 
 		// Refback helper
-		add_filter( 'refback_comment_data', array( 'Refback_Receiver', 'refback_verify' ), 11, 1 );
+		add_filter( 'refback_comment_data', array( static::class, 'refback_verify' ), 11, 1 );
 
 		// Refback data handler
-		add_filter( 'refback_comment_data', array( 'Refback_Receiver', 'default_title_filter' ), 21, 1 );
-		add_filter( 'refback_comment_data', array( 'Refback_Receiver', 'default_content_filter' ), 22, 1 );
-
-		self::register_meta();
+		add_filter( 'refback_comment_data', array( static::class, 'default_title_filter' ), 21, 1 );
+		add_filter( 'refback_comment_data', array( static::class, 'default_content_filter' ), 22, 1 );
+		add_filters( 'semantic_linkbacks_enhance_comment_types', array( static::class, 'semantic_linkbacks' ), 11 );
 	}
 
 	/**
-	 * This is more to lay out the data structure than anything else.
+	 * Add refbacks to Semantic Linkbacks Enhancement.
+	 *
+	 * @param array $comment_types Comment Types.
+	 * @return array Comment Types.
 	 */
-	public static function register_meta() {
-		// For pingbacks the source URL is stored in the author URL. This means you cannot have an author URL that is different than the source.
-		$args = array(
-			'type'         => 'string',
-			'description'  => __( 'Source URL for the Refback', 'refback' ),
-			'single'       => true,
-			'show_in_rest' => true,
-		);
-		register_meta( 'comment', 'refback_source_url', $args );
+	public static function semantic_linkbacks( $comment_types ) {
+		$comment_types[] = 'refback';
+		return array_unique( $comment_types );
 	}
 
 	/**
@@ -129,11 +125,13 @@ class Refback_Receiver {
 		$comment_approved = 0;
 
 		$comment_meta = array(
-			'protocol' => 'refback',
+			'protocol'   => 'refback',
+			'source_url' => $source,
 		);
 
 		$commentdata = compact( 'comment_type', 'comment_approved', 'comment_agent', 'comment_date', 'comment_date_gmt', 'comment_meta', 'source', 'target' );
 
+		// Fork into the background to avoid slowing each retrieval.
 		wp_schedule_single_event( time(), 'do_refbacks', array( $commentdata ) );
 
 	}
@@ -277,12 +275,12 @@ class Refback_Receiver {
 			)
 		) ) {
 			return new WP_Error(
-					'target_not_found',
-					esc_html__( 'Cannot find target link', 'webmention' ),
-					array(
-						'status' => 400,
-						'data'   => $data,
-					)
+				'target_not_found',
+				esc_html__( 'Cannot find target link', 'refback' ),
+				array(
+					'status' => 400,
+					'data'   => $data,
+				)
 			);
 		}
 
@@ -291,9 +289,9 @@ class Refback_Receiver {
 		}
 
 		$commentdata = array(
-					'content_type'           => $request->get_content_type(),
-					'remote_source_original' => $request->get_body(),
-					'remote_source'          => refback_sanitize_html( $request->get_body() ),
+			'content_type'           => $request->get_content_type(),
+			'remote_source_original' => $request->get_body(),
+			'remote_source'          => refback_sanitize_html( $request->get_body() ),
 		);
 
 		return array_merge( $commentdata, $data );
