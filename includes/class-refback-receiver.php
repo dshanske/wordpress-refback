@@ -135,7 +135,7 @@ class Refback_Receiver {
 		$comment_date_gmt = get_gmt_from_date( $comment_date );
 
 		// change this if your theme can't handle the Refbacks comment type
-		$comment_type = REFBACK_COMMENT_TYPE;
+		$comment_type = 'refback';
 
 		// change this if you want to auto approve your refbacks
 		$comment_approved = 0;
