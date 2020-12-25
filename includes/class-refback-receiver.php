@@ -15,7 +15,7 @@ class Refback_Receiver {
 
 		add_filter( 'duplicate_comment_id', array( static::class, 'disable_wp_check_dupes' ), 20, 2 );
 
-		add_filters( 'get_avatar_comment_types', array( static::class, 'get_avatar_comment_types' ), 12 );
+		add_filter( 'get_avatar_comment_types', array( static::class, 'get_avatar_comment_types' ), 12 );
 
 		// Refback helper
 		add_filter( 'refback_comment_data', array( static::class, 'refback_verify' ), 11, 1 );
