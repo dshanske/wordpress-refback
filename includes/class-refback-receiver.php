@@ -203,16 +203,6 @@ class Refback_Receiver {
 		// add empty fields
 		$commentdata['comment_author_email'] = '';
 
-		$args     = array(
-			'post_id'    => $comment_post_id,
-			'author_url' => $source,
-			'count'      => true,
-		);
-		$comments = get_comments( $args );
-		if ( 0 !== $comments ) {
-			return;
-		}
-
 		/**
 		 * Filter Comment Data for Refbacks.
 		 *
@@ -237,11 +227,11 @@ class Refback_Receiver {
 			return;
 		}
 
-		// disable flood control
-		remove_action( 'check_comment_flood', 'check_comment_flood_db', 10 );
-
 		// update or save refback
 		if ( empty( $commentdata['comment_ID'] ) ) {
+
+			// disable flood control
+			remove_action( 'check_comment_flood', 'check_comment_flood_db', 10 );
 			// save comment
 			$commentdata['comment_ID'] = wp_new_comment( $commentdata, true );
 
@@ -254,6 +244,8 @@ class Refback_Receiver {
 			 * @param array $commentdata Comment Array.
 			 */
 			do_action( 'refback_post', $commentdata['comment_ID'], $commentdata );
+			// re-add flood control
+			add_action( 'check_comment_flood', 'check_comment_flood_db', 10, 4 );
 		} else {
 			$visited = get_comment_meta( $commentdata['comment_ID'], 'referer_count', true );
 			if ( ! $visited ) {
@@ -272,8 +264,6 @@ class Refback_Receiver {
 			 */
 			do_action( 'edit_refback', $commentdata['comment_ID'], $commentdata );
 		}
-		// re-add flood control
-		add_action( 'check_comment_flood', 'check_comment_flood_db', 10, 4 );
 	}
 
 	public static function refback_verify( $data ) {
@@ -284,6 +274,12 @@ class Refback_Receiver {
 		if ( ! is_array( $data ) || empty( $data ) ) {
 			return;
 		}
+
+		// If there is already a comment ID, then do not reverify.
+		if ( isset( $data['comment_ID'] ) ) {
+			return $data;
+		}
+
 
 		$request = new Refback_Request();
 		$return  = $request->fetch( $data['source'] );
