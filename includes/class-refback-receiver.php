@@ -21,7 +21,23 @@ class Refback_Receiver {
 		// Refback data handler
 		add_filter( 'refback_comment_data', array( static::class, 'default_title_filter' ), 21, 1 );
 		add_filter( 'refback_comment_data', array( static::class, 'default_content_filter' ), 22, 1 );
-		add_filters( 'semantic_linkbacks_enhance_comment_types', array( static::class, 'semantic_linkbacks' ), 11 );
+		add_filter( 'semantic_linkbacks_enhance_comment_types', array( static::class, 'semantic_linkbacks' ), 11 );
+
+		// Admin
+		add_action( 'admin_comment_types_dropdown', array( static::class, 'comment_types_dropdown' ) );
+	}
+
+	/**
+	 * Extend the "filter by comment type" of in the comments section
+	 * of the admin interface with "refback"
+	 *
+	 * @param array $types the different comment types
+	 *
+	 * @return array the filtered comment types
+	 */
+	public static function comment_types_dropdown( $types ) {
+		$types['refback'] = esc_html__( 'Refbacks', 'refback' );
+		return array_unique( $types );
 	}
 
 	/**
@@ -145,14 +161,14 @@ class Refback_Receiver {
 			return;
 		}
 
-		$comment_post_id = url_to_postid( $commentdata['target'] );
+		$comment_post_id = refback_url_to_postid( $commentdata['target'] );
 
 		// check if post id exists.
 		if ( ! $comment_post_id ) {
 			return;
 		}
 
-		if ( url_to_postid( $commentdata['source'] ) === $comment_post_id ) {
+		if ( refback_url_to_postid( $commentdata['source'] ) === $comment_post_id ) {
 			return;
 		}
 

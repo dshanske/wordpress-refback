@@ -28,10 +28,10 @@ class Refback_Plugin {
 	 * Initialize Refback Plugin
 	 */
 	public static function init() {
-		// Add a new feature type to posts for Refbacks
-		add_post_type_support( 'post', 'refbacks' );
-		if ( 1 === (int) get_option( 'refback_support_pages' ) ) {
-			add_post_type_support( 'page', 'refback' );
+		// If this plugin is enabled, it will enable refback support for posts and any items the webmentions plugin enables for if installed.
+		$support = get_option( 'webmention_support_post_types', array( 'post', 'pages' ) );
+		foreach( $support as $type ) {
+			add_post_type_support( $type, 'refbacks' );
 		}
 
 		//  Add Global Functions
