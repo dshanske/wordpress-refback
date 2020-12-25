@@ -142,7 +142,7 @@ class Refback_Receiver {
 
 		$comment_meta = array(
 			'protocol'   => 'refback',
-			'source_url' => $source,
+			'source_url' => esc_url_raw( $source ),
 		);
 
 		$commentdata = compact( 'comment_type', 'comment_approved', 'comment_agent', 'comment_date', 'comment_date_gmt', 'comment_meta', 'source', 'target' );
@@ -181,10 +181,6 @@ class Refback_Receiver {
 		$commentdata['comment_author_IP'] = $comment_author_ip;
 		// Set Comment Author URL to Source
 		$commentdata['comment_author_url'] = esc_url_raw( $commentdata['source'] );
-		// Save Source to Meta to Allow Author URL to be Changed and Parsed
-		$commentdata['comment_meta'] = array(
-			'refback_source_url' => $commentdata['comment_author_url'],
-		);
 
 		$commentdata['comment_parent'] = '';
 
