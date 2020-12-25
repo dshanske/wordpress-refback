@@ -13,5 +13,6 @@ jobs:
       id: deploy
       uses: 10up/action-wordpress-plugin-deploy@stable
       env:
+        SLUG: refback
         SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
         SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
