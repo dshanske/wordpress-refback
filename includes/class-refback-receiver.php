@@ -15,6 +15,8 @@ class Refback_Receiver {
 
 		add_filter( 'duplicate_comment_id', array( static::class, 'disable_wp_check_dupes' ), 20, 2 );
 
+		add_filters( 'get_avatar_comment_types', array( static::class, 'get_avatar_comment_types' ), 12 );
+
 		// Refback helper
 		add_filter( 'refback_comment_data', array( static::class, 'refback_verify' ), 11, 1 );
 
@@ -28,8 +30,19 @@ class Refback_Receiver {
 	}
 
 	/**
-	 * Extend the "filter by comment type" of in the comments section
-	 * of the admin interface with "refback"
+	 * Add refback as an avatar comment type.
+	 *
+	 * @param array $types Comment Types.
+	 * @return array Types.
+	 */
+	public static function get_avatar_comment_types( $types ) {
+		$types[] = 'refback';
+		return array_unique( $types );
+	}
+
+	/**
+	 * Extend the "filter by comment type" of in the comments section.
+	 * of the admin interface with "refback".
 	 *
 	 * @param array $types the different comment types
 	 *
