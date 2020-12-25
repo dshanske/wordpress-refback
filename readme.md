@@ -37,7 +37,7 @@ No. This will work independently. However, if you have that plugin, it will pars
 
 ### Do I need the Webmentions Plugin? ###
 
-No. This will work independently. However, it will use the options int he webmentions plugin, if enabled, to accept refbacks to different post types and route homepage and other archive page mentions to pages if configured.
+No. This will work independently. However, it will use the options in the webmentions plugin, if enabled, specifically to accept refbacks to different post types and route homepage and other archive page mentions to pages if configured.
 
 ## Changelog ##
 
