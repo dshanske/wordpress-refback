@@ -18,11 +18,13 @@ class Refback_Receiver {
 		add_filter( 'get_avatar_comment_types', array( static::class, 'get_avatar_comment_types' ), 12 );
 
 		// Refback helper
-		add_filter( 'refback_comment_data', array( static::class, 'refback_verify' ), 11, 1 );
+		add_filter( 'refback_comment_data', array( static::class, 'check_dupes' ), 11, 1 );
+		add_filter( 'refback_comment_data', array( static::class, 'refback_verify' ), 12, 1 );
 
 		// Refback data handler
 		add_filter( 'refback_comment_data', array( static::class, 'default_title_filter' ), 21, 1 );
 		add_filter( 'refback_comment_data', array( static::class, 'default_content_filter' ), 22, 1 );
+
 		add_filter( 'semantic_linkbacks_enhance_comment_types', array( static::class, 'semantic_linkbacks' ), 11 );
 
 		// Admin
@@ -253,10 +255,15 @@ class Refback_Receiver {
 			 */
 			do_action( 'refback_post', $commentdata['comment_ID'], $commentdata );
 		} else {
-			// update comment
-			wp_update_comment( $commentdata );
+			$visited = get_comment_meta( $commentdata['comment_ID'], 'referer_count', true );
+			if ( ! $visited ) {
+				$visited = 0;
+			}
+			$visited = ( (int) $visited ) + 1;
+			update_comment_meta( $commentdata['comment_ID'], 'referer_count', $visited );
+
 			/**
-			 * Fires after a refback is updated in the database.
+			 * Fires after a refback is received for an existing comment in the database.
 			 *
 			 * The hook is needed as the comment_post hook uses filtered data
 			 *
@@ -351,6 +358,74 @@ class Refback_Receiver {
 
 		return $dupe_id;
 	}
+
+
+	/**
+	 * Check if a comment already exists
+	 *
+	 * @param  array $commentdata the comment, created for the webmention data
+	 *
+	 * @return array|null the dupe or null
+	 */
+	public static function check_dupes( $commentdata ) {
+		if ( ! $commentdata || is_wp_error( $commentdata ) ) {
+			return $commentdata;
+		}
+		$args = array(
+			'post_id'    => $commentdata['comment_post_ID'],
+			'meta_query' => array(
+				'relation' => 'OR',
+				// Check for source_url, which is used by Refback, ActivityPub, and will eventually be used by Webmention as well.
+				array(
+					'key'   => 'source_url',
+					'value' => $commentdata['comment_author_url'],
+				),
+				/* check for duplicate webmentions using the old property.
+				 */
+				array(
+					'key'   => 'webmention_source_url',
+					'value' => $commentdata['comment_author_url'],
+				),
+				/* check comments sent via salmon are also dupes
+				 * or anyone else who can't use comment_author_url as the original link,
+				 * but can use a _crossposting_link meta value.
+				 * @link https://github.com/pfefferle/wordpress-salmon/blob/master/plugin.php#L192
+				 */
+				array(
+					'key'   => '_crossposting_link',
+					'value' => $commentdata['comment_author_url'],
+				),
+			),
+		);
+		$comments = get_comments( $args );
+
+		// check result
+		if ( ! empty( $comments ) ) {
+			$comment                         = $comments[0];
+			$commentdata['comment_ID']       = $comment->comment_ID;
+			$commentdata['comment_approved'] = $comment->comment_approved;
+			return $commentdata;
+		}
+
+		// Check comment_author_url if this is empty.
+		$args = array(
+			'post_id'    => $commentdata['comment_post_ID'],
+			'author_url' => $commentdata['comment_author_url'],
+		);
+
+		$comments = get_comments( $args );
+
+		// check result
+		if ( ! empty( $comments ) ) {
+			$comment                         = $comments[0];
+			$commentdata['comment_ID']       = $comment->comment_ID;
+			$commentdata['comment_approved'] = $comment->comment_approved;
+			return $commentdata;
+		}
+
+		return $commentdata;
+	}
+
 
 	/**
 	 * Try to make a nice title (username)
