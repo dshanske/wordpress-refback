@@ -3,7 +3,7 @@
 **Tags:** refback, linkback, comment, response  
 **Requires at least:** 4.9.9  
 **Tested up to:** 5.6  
-**Stable tag:** 2.0.0  
+**Stable tag:** 2.0.1  
 **License:** GPLv2  
 
 Enable Refbacks on your WordPress site
@@ -43,7 +43,13 @@ No. This will work independently. However, it will use the options in the webmen
 
 Project and support maintained on github at [dshanske/wordpress-refback](https://github.com/dshanske/wordpress-refback).
 
-### 2.0.0 ###
+### 2.0.1 (2020-12-25) ###
+* Improvement after a few hours of testing.
+* Improved deduplication.
+* Allow display of avatars by default.
+* Store a referer count for future, which will increment during each referral.
+
+### 2.0.0 (2020-12-25) ###
 
 * Rewrite of plugin based on webmention code improvements through 5.X 
 * Removal of old dependencies
