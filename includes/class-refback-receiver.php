@@ -159,6 +159,7 @@ class Refback_Receiver {
 			'protocol'   => 'refback',
 			'source_url' => esc_url_raw( $source ),
 			'target_url' => esc_url_raw( $target ),
+			'modified'   => time(),
 		);
 
 		$commentdata = compact( 'comment_type', 'comment_approved', 'comment_agent', 'comment_date', 'comment_date_gmt', 'comment_meta', 'source', 'target' );
@@ -279,7 +280,6 @@ class Refback_Receiver {
 		if ( isset( $data['comment_ID'] ) ) {
 			return $data;
 		}
-
 
 		$request = new Refback_Request();
 		$return  = $request->fetch( $data['source'] );
